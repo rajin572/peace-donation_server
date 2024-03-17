@@ -11,11 +11,7 @@ const port = process.env.PORT || 5000;
 // Middleware
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "https://peace-assignment-6.netlify.app/",
-      "https://peace-donation.netlify.app",
-    ],
+    origin: ["http://localhost:5173", "https://peace-donation.netlify.app"],
     credentials: true,
   })
 );
@@ -39,6 +35,8 @@ async function run() {
     const donationCollection = db.collection("donations");
     const donorCollection = db.collection("donors");
     const testimonialCollection = db.collection("testimonials");
+    const volunteerCollection = db.collection("volunteers");
+    const commentCollection = db.collection("comments");
 
     // User Registration
     app.post("/api/v1/register", async (req, res) => {
@@ -231,12 +229,73 @@ async function run() {
         });
       }
     });
-
     app.get("/api/v1/testimonial", async (req, res) => {
       const data = await testimonialCollection.find({}).toArray();
       res.json({
         success: true,
         message: "successfully retrieve Testimonials!",
+        data,
+      });
+    });
+
+    //* Volunteer Data
+    app.post("/api/v1/volunteer", async (req, res) => {
+      const { image, name, email, passion, phoneNumber, location } = req.body;
+      const existingUser = await volunteerCollection.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: "You Have already created account for Volunteer",
+        });
+      } else {
+        const result = await volunteerCollection.insertOne({
+          image,
+          name,
+          email,
+          passion,
+          phoneNumber,
+          location,
+        });
+        res.json({
+          success: true,
+          message: "Volunteer Account Created Successfully!",
+          result,
+        });
+      }
+    });
+    app.get("/api/v1/volunteer", async (req, res) => {
+      const data = await volunteerCollection.find({}).toArray();
+      res.json({
+        success: true,
+        message: "successfully retrieve volunteers!",
+        data,
+      });
+    });
+    //* Volunteer Data
+    app.post("/api/v1/comment", async (req, res) => {
+      const { image, name, email, comment } = req.body;
+      const currentDate = new Date();
+      const options = { day: "numeric", month: "long", year: "numeric" };
+      const formattedDate = currentDate.toLocaleDateString("en-US", options);
+
+      const result = await commentCollection.insertOne({
+        image,
+        name,
+        email,
+        comment,
+        time: formattedDate,
+      });
+      res.json({
+        success: true,
+        message: "Comment Posted Successfully!",
+        result,
+      });
+    });
+    app.get("/api/v1/comment", async (req, res) => {
+      const data = await commentCollection.find({}).toArray();
+      res.json({
+        success: true,
+        message: "successfully retrieve comments!",
         data,
       });
     });
