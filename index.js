@@ -271,7 +271,7 @@ async function run() {
         data,
       });
     });
-    //* Volunteer Data
+    //* Comment Data
     app.post("/api/v1/comment", async (req, res) => {
       const { image, name, email, comment } = req.body;
       const currentDate = new Date();
