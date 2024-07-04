@@ -40,7 +40,7 @@ async function run() {
 
     // User Registration
     app.post("/api/v1/register", async (req, res) => {
-      const { name, email, password } = req.body;
+      const { name, email, role, password } = req.body;
 
       // Check if email already exists
       const existingUser = await collection.findOne({ email });
@@ -55,7 +55,12 @@ async function run() {
       const hashedPassword = await bcrypt.hash(password, 10);
 
       // Insert user into the database
-      await collection.insertOne({ name, email, password: hashedPassword });
+      await collection.insertOne({
+        name,
+        email,
+        role: "user",
+        password: hashedPassword,
+      });
 
       res.status(201).json({
         success: true,
@@ -81,7 +86,7 @@ async function run() {
 
       // Generate JWT token
       const token = jwt.sign(
-        { email: user.email, name: user.name },
+        { email: user.email, name: user.name, role: user.role },
         process.env.JWT_SECRET,
         {
           expiresIn: process.env.EXPIRES_IN,
@@ -145,8 +150,7 @@ async function run() {
 
     //* Donor Data
     app.post("/api/v1/donor", async (req, res) => {
-      const { email, name, image, amount } = req.body;
-
+      const { email, name, image, amount, donationPost } = req.body;
       const existingUser = await donorCollection.findOne({ email });
 
       if (!existingUser) {
@@ -155,11 +159,12 @@ async function run() {
           name,
           image,
           amount,
+          donationPosts: [donationPost], // Initialize with the first donation post
         });
 
         return res.json({
           success: true,
-          message: "You provided Donation successfully!",
+          message: "You provided a donation successfully!",
           result,
         });
       } else {
@@ -168,13 +173,16 @@ async function run() {
 
         const data = await donorCollection.updateOne(
           { email: email },
-          { $set: { amount: updatedAmount } }
+          {
+            $set: { amount: updatedAmount },
+            $push: { donationPosts: donationPost }, // Push the new donation post into the array
+          }
         );
 
-        res.json({
+        return res.json({
           success: true,
-          message: "You provided Donation successfully!",
-          updatedDonation: data,
+          message: "Donation updated successfully!",
+          data,
         });
       }
     });
@@ -217,8 +225,10 @@ async function run() {
           result,
         });
       } else {
+        const updatedAmount = amount;
         const data = await testimonialCollection.updateOne(
           { email: email },
+          { $set: { amount: updatedAmount } },
           { $set: { testimonial: testimonial } }
         );
 
